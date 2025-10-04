@@ -1,13 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
 import axios from "axios";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import { useAuth } from "../../contexts/AuthContext";
-
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
 export default function Report() {
   const mapContainerRef = useRef(null);
@@ -39,25 +35,73 @@ export default function Report() {
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
-    if (!mapboxgl.accessToken) return;
 
-    mapRef.current = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
-      center: [0, 0],
-      zoom: 2,
-    });
+    // Load Leaflet dynamically
+    const loadLeaflet = async () => {
+      try {
+        const L = await import('leaflet');
+        
+        // Fix for default markers in Leaflet
+        delete L.Icon.Default.prototype._getIconUrl;
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        });
 
-    mapRef.current.addControl(new mapboxgl.NavigationControl());
+        // Check if container is already initialized
+        if (mapContainerRef.current._leaflet_id) {
+          return;
+        }
 
-    mapRef.current.on("click", (e) => {
-      const lngLat = [e.lngLat.lng, e.lngLat.lat];
-      setCoordinates(lngLat);
-      new mapboxgl.Marker().setLngLat(lngLat).addTo(mapRef.current);
-    });
+        // Create map with proper container
+        mapRef.current = L.map(mapContainerRef.current, {
+          center: [0, 0],
+          zoom: 2,
+          zoomControl: true
+        });
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 19
+        }).addTo(mapRef.current);
+
+        // Add click handler
+        mapRef.current.on('click', (e) => {
+          const lngLat = [e.latlng.lng, e.latlng.lat];
+          setCoordinates(lngLat);
+          
+          // Clear existing markers
+          mapRef.current.eachLayer((layer) => {
+            if (layer instanceof L.Marker) {
+              mapRef.current.removeLayer(layer);
+            }
+          });
+          
+          // Add new marker
+          L.marker([e.latlng.lat, e.latlng.lng]).addTo(mapRef.current);
+        });
+
+        // Force map to resize
+        setTimeout(() => {
+          if (mapRef.current) {
+            mapRef.current.invalidateSize();
+          }
+        }, 100);
+
+      } catch (error) {
+        console.error('Error loading map:', error);
+      }
+    };
+
+    loadLeaflet();
 
     return () => {
-      mapRef.current && mapRef.current.remove();
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
   }, []);
 
@@ -88,17 +132,17 @@ export default function Report() {
         .find(row => row.startsWith('auth-token='))
         ?.split('=')[1];
 
-      const formData = new FormData();
-      formData.append("longitude", String(coordinates[0]));
-      formData.append("latitude", String(coordinates[1]));
-      formData.append("description", description);
-      formData.append("isSOS", isSOS);
-      for (const file of images) formData.append("images", file);
+      // Prepare data for Python backend
+      const reportData = {
+        text: description,
+        latitude: coordinates[1], // Note: latitude and longitude are swapped
+        longitude: coordinates[0],
+        recaptcha_token: "test_token" // You'll need to implement reCAPTCHA
+      };
 
-      const response = await axios.post("/api/reports", formData, {
+      const response = await axios.post("http://localhost:8000/report", reportData, {
         headers: { 
-          "Content-Type": "multipart/form-data",
-          "Authorization": `Bearer ${token}`
+          "Content-Type": "application/json"
         },
       });
       
@@ -111,9 +155,9 @@ export default function Report() {
       
       // Clear map marker
       if (mapRef.current) {
-        mapRef.current.getStyle().layers.forEach(layer => {
-          if (layer.id.includes('marker')) {
-            mapRef.current.removeLayer(layer.id);
+        mapRef.current.eachLayer((layer) => {
+          if (layer instanceof L.Marker) {
+            mapRef.current.removeLayer(layer);
           }
         });
       }
@@ -137,6 +181,7 @@ export default function Report() {
             <div
               ref={mapContainerRef}
               className="h-80 w-full rounded border"
+              style={{ height: '320px', width: '100%' }}
               aria-label="Map to select location"
             />
             <p className="mt-2 text-sm text-gray-600">

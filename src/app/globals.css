@@ -1,4 +1,39 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Fix for Leaflet map container */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* Custom marker styles */
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+.custom-marker div {
+  background-color: inherit !important;
+  width: inherit !important;
+  height: inherit !important;
+  border-radius: inherit !important;
+  border: inherit !important;
+  box-shadow: inherit !important;
+  display: block !important;
+  position: relative !important;
+}
 
 @keyframes pulse {
   0%, 100% {

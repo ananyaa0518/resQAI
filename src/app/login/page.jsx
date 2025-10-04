@@ -31,7 +31,7 @@ export default function Login() {
     const result = await login(formData.phoneNumber, formData.password);
 
     if (result.success) {
-      router.push("/dashboard");
+      router.push("/");
     } else {
       setError(result.error);
     }

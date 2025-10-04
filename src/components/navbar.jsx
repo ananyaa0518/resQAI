@@ -56,14 +56,12 @@ export default function Navbar() {
                 >
                   Report
                 </Link>
-                {user?.role === 'admin' && (
-                  <Link
-                    href="/admin"
-                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    Admin
-                  </Link>
-                )}
+                <Link
+                  href="/admin"
+                  className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Admin
+                </Link>
                 <div className="flex items-center space-x-4">
                   <span className="text-sm text-gray-600">
                     Welcome, {user?.name}
@@ -135,15 +133,13 @@ export default function Navbar() {
                   >
                     Report
                   </Link>
-                  {user?.role === 'admin' && (
-                    <Link
-                      href="/admin"
-                      className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Admin
-                    </Link>
-                  )}
+                  <Link
+                    href="/admin"
+                    className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Admin
+                  </Link>
                   <div className="px-3 py-2">
                     <span className="text-sm text-gray-600">Welcome, {user?.name}</span>
                   </div>
