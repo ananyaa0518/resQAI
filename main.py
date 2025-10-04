@@ -9,7 +9,7 @@ from typing import List
 import httpx
 
 from database import get_db, init_db
-from models import Report, ReportStatus, DisasterType
+from models.report import Report, ReportStatus, DisasterType
 from schemas import ReportCreate, ReportResponse, SOSCreate
 from ml_model import get_disaster_type
 from config import get_settings

@@ -1,9 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Enum as SQLEnum
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, Float, DateTime, Enum as SQLEnum, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
-
-Base = declarative_base()
+from .base import Base
 
 class ReportStatus(enum.Enum):
     PENDING = "Pending"
@@ -30,3 +29,11 @@ class Report(Base):
     ip_address = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     verified_at = Column(DateTime, nullable=True)
+    
+    # Foreign key relationships
+    reported_by = Column(Integer, ForeignKey("users.id"))
+    verified_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    # Relationships
+    reporter = relationship("User", foreign_keys=[reported_by])
+    verifier = relationship("User", foreign_keys=[verified_by])
