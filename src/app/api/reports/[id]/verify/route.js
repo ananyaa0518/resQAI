@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import connectDB from "../../../../../lib/db";
-import Report from "../../../../../../models/Report";
-import User from "../../../../../../models/User";
-import { verifyToken } from "../../../../../lib/jwt";
+import connectDB from "@/lib/db";
+import Report from "@/models/Report";
+import User from "@/models/User";
+import { verifyToken } from "@/lib/jwt";
 
 export async function POST(request, { params }) {
   try {

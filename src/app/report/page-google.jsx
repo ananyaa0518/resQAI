@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import axios from "axios";
 import ProtectedRoute from "../../components/ProtectedRoute";
+import GoogleMapSelector from "../../components/GoogleMapSelector";
 import { useAuth } from "../../contexts/AuthContext";
 
 export default function Report() {
-  const mapRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-  const markerRef = useRef(null);
   const [coordinates, setCoordinates] = useState(null);
+  const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
   const [images, setImages] = useState([]);
   const [isSOS, setIsSOS] = useState(false);
@@ -30,46 +29,16 @@ export default function Report() {
     setCaptchaAnswer(answer.toString());
   };
 
-  useEffect(() => {
+  useState(() => {
     generateCaptcha();
-    initMap();
   }, []);
 
-  const initMap = async () => {
-    if (!window.google) {
-      setTimeout(initMap, 100);
-      return;
-    }
+  const handleLocationSelect = (coords) => {
+    setCoordinates(coords);
+  };
 
-    const { Map } = await google.maps.importLibrary("maps");
-    const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
-
-    const map = new Map(mapRef.current, {
-      center: { lat: 28.4595, lng: 77.0266 },
-      zoom: 12,
-      mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID,
-    });
-
-    mapInstanceRef.current = map;
-
-    const marker = new AdvancedMarkerElement({
-      map,
-      position: { lat: 28.4595, lng: 77.0266 },
-      gmpDraggable: true,
-    });
-
-    markerRef.current = marker;
-
-    map.addListener("click", (e) => {
-      const lngLat = [e.latLng.lng(), e.latLng.lat()];
-      setCoordinates(lngLat);
-      marker.position = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-    });
-
-    marker.addListener("dragend", () => {
-      const lngLat = [marker.position.lng, marker.position.lat];
-      setCoordinates(lngLat);
-    });
+  const handleAddressChange = (newAddress) => {
+    setAddress(newAddress);
   };
 
   const handleImageChange = (e) => {
@@ -81,62 +50,56 @@ export default function Report() {
     e.preventDefault();
     setError("");
     setSuccess("");
-
+    
     if (!coordinates) {
       setError("Please select a location on the map.");
       return;
     }
-
+    
     if (!description.trim()) {
       setError("Please provide a description of the emergency.");
       return;
     }
-
+    
     if (!userCaptchaInput || userCaptchaInput !== captchaAnswer) {
       setError("Please solve the CAPTCHA correctly.");
       return;
     }
-
+    
     setSubmitting(true);
     try {
       const token = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("auth-token="))
-        ?.split("=")[1];
+        .split('; ')
+        .find(row => row.startsWith('auth-token='))
+        ?.split('=')[1];
 
       const formData = new FormData();
       formData.append("longitude", String(coordinates[0]));
       formData.append("latitude", String(coordinates[1]));
       formData.append("description", description);
+      formData.append("address", address);
       formData.append("isSOS", isSOS);
       for (const file of images) formData.append("images", file);
 
       const response = await axios.post("/api/reports", formData, {
-        headers: {
+        headers: { 
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
+          "Authorization": `Bearer ${token}`
         },
       });
-
-      setSuccess(
-        `Report submitted successfully! ${isSOS ? "SOS alert activated." : ""}`
-      );
+      
+      setSuccess(`Report submitted successfully! ${isSOS ? 'SOS alert activated.' : ''}`);
       setDescription("");
+      setAddress("");
       setImages([]);
       setIsSOS(false);
       setUserCaptchaInput("");
+      setCoordinates(null);
       generateCaptcha();
-
-      // Reset map marker
-      if (markerRef.current) {
-        markerRef.current.position = { lat: 28.4595, lng: 77.0266 };
-        setCoordinates(null);
-      }
+      
     } catch (err) {
       if (err.response?.status === 429) {
-        setError(
-          "Rate limit exceeded. Please wait before submitting another report."
-        );
+        setError("Rate limit exceeded. Please wait before submitting another report.");
       } else {
         setError("Failed to submit report. Please try again.");
       }
@@ -149,25 +112,33 @@ export default function Report() {
     <ProtectedRoute>
       <main className="mx-auto max-w-7xl px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-semibold mb-6">Report an Emergency</h1>
+        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Map Section */}
           <div>
-            <div
-              ref={mapRef}
-              className="h-80 w-full rounded border"
-              aria-label="Map to select location"
+            <GoogleMapSelector
+              onLocationSelect={handleLocationSelect}
+              onAddressChange={handleAddressChange}
+              center={{ lat: 28.43268, lng: 77.0459 }} // Default to Gurgaon
             />
-            <p className="mt-2 text-sm text-gray-600">
-              Click on the map to set the location of the incident.
-            </p>
+            
             {coordinates && (
-              <p className="mt-2 text-sm">
-                Selected: {coordinates[1].toFixed(5)},{" "}
-                {coordinates[0].toFixed(5)}
-              </p>
+              <div className="mt-4 p-3 bg-gray-50 rounded-md">
+                <p className="text-sm font-medium">Selected Location:</p>
+                <p className="text-sm text-gray-600">
+                  Coordinates: {coordinates[1].toFixed(5)}, {coordinates[0].toFixed(5)}
+                </p>
+                {address && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Address: {address}
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Form Section */}
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* SOS Toggle */}
             <div className="flex items-center space-x-2">
               <input
@@ -184,10 +155,7 @@ export default function Report() {
 
             {/* Description */}
             <div>
-              <label
-                htmlFor="description"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
                 Emergency Description *
               </label>
               <textarea
@@ -195,7 +163,7 @@ export default function Report() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Describe the emergency situation in detail..."
                 required
               />
@@ -203,10 +171,7 @@ export default function Report() {
 
             {/* Image Upload */}
             <div>
-              <label
-                htmlFor="images"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-2">
                 Upload Images (Optional)
               </label>
               <input
@@ -215,7 +180,7 @@ export default function Report() {
                 multiple
                 accept="image/*"
                 onChange={handleImageChange}
-                className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               {images.length > 0 && (
                 <p className="text-sm text-gray-600 mt-1">
@@ -226,10 +191,7 @@ export default function Report() {
 
             {/* CAPTCHA */}
             <div>
-              <label
-                htmlFor="captcha"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="captcha" className="block text-sm font-medium text-gray-700 mb-2">
                 Security Check: {captcha}
               </label>
               <input
@@ -237,7 +199,7 @@ export default function Report() {
                 id="captcha"
                 value={userCaptchaInput}
                 onChange={(e) => setUserCaptchaInput(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter the answer"
                 required
               />
@@ -245,14 +207,14 @@ export default function Report() {
 
             {/* Error/Success Messages */}
             {error && (
-              <div className="rounded-md bg-red-50 p-4">
-                <div className="text-sm text-red-700">{error}</div>
+              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {error}
               </div>
             )}
-
+            
             {success && (
-              <div className="rounded-md bg-green-50 p-4">
-                <div className="text-sm text-green-700">{success}</div>
+              <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                {success}
               </div>
             )}
 
@@ -260,19 +222,20 @@ export default function Report() {
             <button
               type="submit"
               disabled={submitting || !coordinates}
-              className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+              className={`w-full py-3 px-4 rounded-md font-medium ${
                 submitting || !coordinates
-                  ? "bg-gray-400 cursor-not-allowed"
+                  ? 'bg-gray-400 cursor-not-allowed'
                   : isSOS
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-indigo-600 hover:bg-indigo-700"
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
             >
-              {submitting
-                ? "Submitting..."
-                : isSOS
-                ? "🚨 Send SOS Alert"
-                : "Submit Report"}
+              {submitting 
+                ? 'Submitting...' 
+                : isSOS 
+                ? '🚨 Send SOS Alert' 
+                : 'Submit Report'
+              }
             </button>
           </form>
         </div>
