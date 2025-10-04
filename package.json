@@ -8,9 +8,14 @@
     "start": "next start"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
+    "@heroicons/react": "^2.2.0",
+    "axios": "^1.12.2",
+    "mapbox-gl": "^3.15.0",
+    "next": "15.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.5.4"
+    "react-map-gl": "^8.1.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
