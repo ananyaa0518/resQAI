@@ -12,4 +12,4 @@ slowapi==0.1.9
 httpx==0.25.1
 scikit-learn==1.3.2
 pandas==2.1.3
-numpy==1.26.2
+numpy==1.26.2git 

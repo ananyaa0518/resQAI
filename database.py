@@ -5,6 +5,11 @@ from config import get_settings
 # Load settings from .env file
 settings = get_settings()
 DATABASE_URL = settings.database_url
+print(f"Database URL: {DATABASE_URL}")  # Debug print
+
+# Force SQLite for now
+DATABASE_URL = "sqlite:///./disaster.db"
+print(f"Using SQLite: {DATABASE_URL}")
 
 # Configure engine based on database type
 if DATABASE_URL.startswith("sqlite"):

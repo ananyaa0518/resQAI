@@ -17,6 +17,14 @@ from config import get_settings
 # Initialize FastAPI app
 app = FastAPI(title="Disaster Report API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # CORS middleware for frontend
 app.add_middleware(
     CORSMiddleware,
@@ -91,7 +99,7 @@ async def create_report(
         latitude=report.latitude,
         longitude=report.longitude,
         disaster_type=disaster_type,
-        status=ReportStatus.VERIFIED,
+        status=ReportStatus.PENDING,  # Start as pending, not verified
         ip_address=ip
     )
     
@@ -128,13 +136,34 @@ async def create_sos(
     return db_report
 
 @app.get("/reports", response_model=List[ReportResponse])
-async def get_verified_reports(db: Session = Depends(get_db)):
-    """Get all verified reports for map display"""
-    reports = db.query(Report).filter(
-        Report.status == ReportStatus.VERIFIED
-    ).order_by(Report.created_at.desc()).all()
-    
+async def get_all_reports(db: Session = Depends(get_db)):
+    """Get all reports for map display and admin panel"""
+    reports = db.query(Report).order_by(Report.created_at.desc()).all()
     return reports
+
+@app.patch("/reports/{report_id}/status")
+async def update_report_status(
+    report_id: int,
+    status_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Update report status (admin only)"""
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    new_status = status_data.get("status")
+    if new_status not in ["Pending", "Verified", "Rejected"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    
+    report.status = ReportStatus(new_status)
+    if new_status == "Verified":
+        report.verified_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(report)
+    
+    return {"message": f"Report {report_id} status updated to {new_status}", "report": report}
 
 
 # ============ UTILITY ENDPOINTS ============
