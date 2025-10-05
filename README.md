@@ -56,9 +56,8 @@ resQAI addresses these by:
 ### Prerequisites
 
 - Python 3.x
-- Node.js and npm (if applicable)
-- pip (Python package manager)
-- [Other requirements, e.g., Docker, PostgreSQL, etc.]
+- Node.js and npm
+- pip
 
 ### Installation
 
@@ -135,3 +134,4 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 This project is licensed under the MIT License.  
 See [LICENSE](LICENSE) for details.
+
