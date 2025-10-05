@@ -5,6 +5,7 @@
 When disaster strikes, every second counts.  
 **ResQAI** is an AI-powered platform that connects citizens and first responders in real time.  
 Report emergencies, get instant AI classification, and help coordinate rescues more effectively.
+## Demo Video: https://youtu.be/r5XmbAlUuz8
 
 ---
 
@@ -134,4 +135,5 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 This project is licensed under the MIT License.  
 See [LICENSE](LICENSE) for details.
+
 
