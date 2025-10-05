@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "../../../../../lib/db";
-import Report from "../../../../../models/Report";
-import User from "../../../../../models/User";
+import Report from "../../../../../../models/Report";
+import User from "../../../../../../models/User";
 import { verifyToken } from "../../../../../lib/jwt";
 
 export async function POST(request, { params }) {
@@ -11,7 +11,10 @@ export async function POST(request, { params }) {
     // Verify authentication
     const authHeader = request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
     }
 
     const token = authHeader.substring(7);
@@ -22,14 +25,17 @@ export async function POST(request, { params }) {
 
     // Check if user is admin
     const user = await User.findById(decoded.userId);
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    if (!user || user.role !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
+      );
     }
 
     const { id } = params;
     const { status, notes } = await request.json();
 
-    if (!['Verified', 'Rejected'].includes(status)) {
+    if (!["Verified", "Rejected"].includes(status)) {
       return NextResponse.json(
         { error: "Status must be 'Verified' or 'Rejected'" },
         { status: 400 }
@@ -43,10 +49,10 @@ export async function POST(request, { params }) {
         status,
         verifiedBy: user._id,
         verificationNotes: notes,
-        verifiedAt: new Date()
+        verifiedAt: new Date(),
       },
       { new: true }
-    ).populate('reportedBy', 'name phoneNumber');
+    ).populate("reportedBy", "name phoneNumber");
 
     if (!report) {
       return NextResponse.json({ error: "Report not found" }, { status: 404 });
@@ -59,10 +65,9 @@ export async function POST(request, { params }) {
         status: report.status,
         verifiedBy: user.name,
         verificationNotes: report.verificationNotes,
-        verifiedAt: report.verifiedAt
-      }
+        verifiedAt: report.verifiedAt,
+      },
     });
-
   } catch (error) {
     console.error("Report verification error:", error);
     return NextResponse.json(
